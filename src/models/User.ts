@@ -14,6 +14,7 @@ export interface IUser extends Document {
   companyName?: string;
   companyAddress?: string;
   avatar?: string;
+  avatarPublicId?: string;
   createdAt: Date;
   updatedAt: Date;
   // Method so sánh password - khai báo để TypeScript biết method này tồn tại
@@ -75,6 +76,9 @@ const UserSchema = new Schema<IUser>(
       maxlength: [200, 'Company address cannot exceed 200 characters'],
     },
     avatar: {
+      type: String,
+    },
+    avatarPublicId: {
       type: String,
     },
   },

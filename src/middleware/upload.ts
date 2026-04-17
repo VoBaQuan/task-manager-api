@@ -1,42 +1,33 @@
 import multer from 'multer';
-import path from 'path';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../config/cloudinary';
 import { AppError } from './errorHandler';
 import { Request } from 'express';
 
-// ===== MULTER CONFIG: Avatar Upload =====
-
-// Cấu hình nơi lưu file và tên file
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, 'uploads/avatars'); // Thư mục lưu ảnh
-  },
-  filename: (_req, file, cb) => {
-    // Tên file: avatar-<userId>-<timestamp>.<ext>
-    // Dùng Date.now() để tránh trùng tên khi upload nhiều lần
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `avatar-${Date.now()}${ext}`);
-  },
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'task-manager/avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }],
+  } as object,
 });
 
-// Chỉ cho phép upload file ảnh
 const fileFilter = (
   _req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback,
 ) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
   if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true); // Chấp nhận file
+    cb(null, true);
   } else {
     cb(new AppError('Only JPEG, PNG, and WebP images are allowed', 400));
   }
 };
 
-// Export middleware upload avatar
-// limits.fileSize: tối đa 2MB
 export const uploadAvatar = multer({
   storage,
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 },
-}).single('avatar'); // 'avatar' là tên field trong form-data
+}).single('avatar');

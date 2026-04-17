@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import fs from "fs";
-import path from "path";
 import User from "../models/User";
 import { AppError } from "../middleware/errorHandler";
+import cloudinary from "../config/cloudinary";
 
 // ===== PHASE 2: Auth Controllers =====
 
@@ -185,20 +184,16 @@ export const updateAvatar = async (
       return next(new AppError('Please upload an image file', 400));
     }
 
-    // Đường dẫn avatar mới (relative, dùng để trả về client)
-    const newAvatarPath = `uploads/avatars/${req.file.filename}`;
-
-    // Xóa ảnh cũ nếu có (tránh rác trên disk)
+    // Xóa ảnh cũ trên Cloudinary nếu có
     const currentUser = await User.findById(req.user!._id);
-    if (currentUser?.avatar) {
-      const oldPath = path.join(process.cwd(), currentUser.avatar);
-      fs.unlink(oldPath, () => {}); // Xóa bất đồng bộ, bỏ qua lỗi nếu file không tồn tại
+    if (currentUser?.avatarPublicId) {
+      await cloudinary.uploader.destroy(currentUser.avatarPublicId);
     }
 
-    // Lưu đường dẫn avatar mới vào DB
+    // req.file.path = secure URL, req.file.filename = public_id (từ multer-storage-cloudinary)
     const updatedUser = await User.findByIdAndUpdate(
       req.user!._id,
-      { avatar: newAvatarPath },
+      { avatar: req.file.path, avatarPublicId: req.file.filename },
       { new: true },
     );
 
